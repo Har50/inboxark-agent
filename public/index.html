@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InboxArk — Command Centre</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --gold:#f4a900;
+  --gold2:#d4920a;
+  --gold3:#fff8e7;
+  --terra:#c1666b;
+  --terra2:#a85258;
+  --beige:#d4b896;
+  --beige2:#e8d5bc;
+  --beige3:#f5ede0;
+  --choc:#4a403a;
+  --choc2:#2e2620;
+  --choc3:#6b5c54;
+  --choc4:#8c7a70;
+  --snow:#fdfaf5;
+  --font:'Cormorant Garamond',serif;
+  --body:'Outfit',sans-serif;
+  --mono:'Fira Code',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--choc2);color:var(--snow);font-family:var(--body);min-height:100vh;overflow-x:hidden;}
+
+/* TEXTURE */
+body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+
+/* WARM GLOW */
+body::after{content:'';position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(244,169,0,0.08) 0%,transparent 70%);top:-100px;right:-100px;pointer-events:none;z-index:0;}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:60px;background:var(--choc);border-right:1px solid rgba(244,169,0,0.15);display:flex;flex-direction:column;align-items:center;padding:18px 0;z-index:100;transition:width 0.3s cubic-bezier(0.4,0,0.2,1);}
+.sidebar:hover{width:200px;}
+.logo-mark{width:38px;height:38px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:20px;font-weight:700;color:var(--choc2);flex-shrink:0;margin-bottom:28px;box-shadow:0 4px 20px rgba(244,169,0,0.3);}
+.nav-items{flex:1;width:100%;display:flex;flex-direction:column;gap:2px;padding:0 8px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;overflow:hidden;border:1px solid transparent;}
+.nav-item:hover{background:rgba(244,169,0,0.08);border-color:rgba(244,169,0,0.15);}
+.nav-item.active{background:var(--gold);border-color:var(--gold);}
+.nav-item.active .nav-icon,.nav-item.active .nav-label{color:var(--choc2);}
+.nav-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;color:var(--beige);}
+.nav-label{font-size:12px;font-weight:500;opacity:0;transition:opacity 0.2s;letter-spacing:0.3px;color:var(--beige2);}
+.sidebar:hover .nav-label{opacity:1;}
+.auto-wrap{padding:0 8px;margin-bottom:14px;width:100%;}
+.auto-btn{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;background:rgba(193,102,107,0.1);border:1px solid rgba(193,102,107,0.2);white-space:nowrap;overflow:hidden;transition:all 0.2s;}
+.auto-btn.on{background:rgba(244,169,0,0.1);border-color:rgba(244,169,0,0.25);}
+.toggle-track{width:30px;height:16px;border-radius:99px;background:var(--choc3);position:relative;transition:background 0.2s;flex-shrink:0;}
+.toggle-track.on{background:var(--gold);}
+.toggle-thumb{position:absolute;width:10px;height:10px;border-radius:50%;background:white;top:3px;left:3px;transition:left 0.2s;}
+.toggle-track.on .toggle-thumb{left:17px;background:var(--choc2);}
+.auto-label{font-size:10px;font-weight:600;color:var(--beige);opacity:0;transition:opacity 0.2s;font-family:var(--mono);}
+.sidebar:hover .auto-label{opacity:1;}
+
+/* MAIN */
+.main{margin-left:60px;min-height:100vh;position:relative;z-index:1;}
+
+/* TOPBAR */
+.topbar{height:54px;border-bottom:1px solid rgba(244,169,0,0.12);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(46,38,32,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50;}
+.page-title{font-family:var(--font);font-size:22px;font-weight:600;font-style:italic;color:var(--gold);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.chip{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:99px;border:1px solid;}
+.chip-on{background:rgba(244,169,0,0.1);border-color:rgba(244,169,0,0.3);color:var(--gold);}
+.chip-off{background:rgba(193,102,107,0.08);border-color:rgba(193,102,107,0.2);color:var(--terra);}
+.mode-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-family:var(--mono);font-size:10px;border:1px solid;margin-left:8px;}
+.mp-auto{background:rgba(244,169,0,0.08);border-color:rgba(244,169,0,0.2);color:var(--gold);}
+.mp-manual{background:rgba(193,102,107,0.08);border-color:rgba(193,102,107,0.2);color:var(--terra);}
+.pulse{width:5px;height:5px;border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* STATS */
+.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(244,169,0,0.1);border:1px solid rgba(244,169,0,0.1);border-radius:12px;overflow:hidden;margin-bottom:22px;}
+.stat{background:var(--choc);padding:14px 16px;transition:background 0.2s;}
+.stat:hover{background:rgba(244,169,0,0.05);}
+.stat-n{font-family:var(--mono);font-size:20px;font-weight:400;margin-bottom:2px;}
+.stat-l{font-size:10px;color:var(--choc4);text-transform:uppercase;letter-spacing:0.5px;}
+
+/* CONTENT */
+.content{padding:24px;}
+.screen{display:none;}
+.screen.active{display:block;animation:fadeUp 0.25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* CARDS */
+.card{background:var(--choc);border:1px solid rgba(244,169,0,0.1);border-radius:12px;padding:18px 20px;margin-bottom:14px;transition:border-color 0.2s;}
+.card:hover{border-color:rgba(244,169,0,0.2);}
+.card-title{font-family:var(--font);font-size:16px;font-weight:600;font-style:italic;color:var(--gold);margin-bottom:14px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* BANNERS */
+.auto-banner{background:linear-gradient(135deg,rgba(244,169,0,0.08),rgba(193,102,107,0.05));border:1px solid rgba(244,169,0,0.2);border-radius:12px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
+.ab-icon{font-size:24px;margin-right:14px;}
+.ab-title{font-family:var(--font);font-size:16px;font-weight:600;font-style:italic;color:var(--gold);margin-bottom:2px;}
+.ab-sub{font-size:12px;color:var(--beige);}
+
+/* FORM */
+label{font-family:var(--mono);font-size:10px;color:var(--choc4);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;}
+select,input,textarea{width:100%;background:var(--choc2);border:1px solid rgba(244,169,0,0.12);border-radius:8px;color:var(--snow);font-family:var(--body);font-size:13px;padding:8px 12px;outline:none;transition:border-color 0.15s;margin-bottom:10px;}
+select:focus,input:focus,textarea:focus{border-color:var(--gold);}
+textarea{resize:vertical;line-height:1.6;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-family:var(--body);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;letter-spacing:0.3px;}
+.btn-gold{background:var(--gold);color:var(--choc2);}
+.btn-gold:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(244,169,0,0.3);}
+.btn-terra{background:var(--terra);color:white;}
+.btn-terra:hover{background:var(--terra2);transform:translateY(-1px);}
+.btn-ghost{background:transparent;border:1px solid rgba(244,169,0,0.2);color:var(--beige);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn-full{width:100%;justify-content:center;}
+.btn-sm{padding:5px 12px;font-size:11px;}
+
+/* BADGES */
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono);border:1px solid;}
+.b-gold{background:rgba(244,169,0,0.1);color:var(--gold);border-color:rgba(244,169,0,0.25);}
+.b-terra{background:rgba(193,102,107,0.1);color:var(--terra);border-color:rgba(193,102,107,0.25);}
+.b-beige{background:rgba(212,184,150,0.1);color:var(--beige);border-color:rgba(212,184,150,0.2);}
+.b-green{background:rgba(100,180,100,0.1);color:#7cb87c;border-color:rgba(100,180,100,0.2);}
+.b-fb{background:rgba(24,119,242,0.1);color:#5ba3f5;border-color:rgba(24,119,242,0.2);}
+.b-li{background:rgba(10,102,194,0.1);color:#5ba8d8;border-color:rgba(10,102,194,0.2);}
+.b-gray{background:rgba(107,92,84,0.2);color:var(--choc4);border-color:rgba(107,92,84,0.3);}
+
+/* POST CARDS */
+.post-card{background:var(--choc2);border:1px solid rgba(244,169,0,0.1);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:border-color 0.15s;}
+.post-card:hover{border-color:rgba(244,169,0,0.2);}
+.post-meta{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
+.post-text{font-size:13px;color:var(--beige2);line-height:1.65;margin-bottom:10px;}
+.post-foot{display:flex;justify-content:space-between;align-items:center;}
+.post-time{font-size:10px;color:var(--choc4);font-family:var(--mono);}
+
+/* STUDIO ACCORDION */
+.studio-sec{margin-bottom:16px;border:1px solid rgba(244,169,0,0.1);border-radius:12px;overflow:hidden;transition:border-color 0.2s;}
+.studio-sec:hover{border-color:rgba(244,169,0,0.2);}
+.studio-head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;background:var(--choc);transition:background 0.15s;}
+.studio-head:hover{background:rgba(244,169,0,0.04);}
+.sh-icon{font-size:16px;color:var(--gold);}
+.sh-title{font-family:var(--font);font-size:15px;font-weight:600;font-style:italic;color:var(--snow);flex:1;}
+.sh-arrow{color:var(--choc4);transition:transform 0.2s;font-size:11px;}
+.sh-arrow.open{transform:rotate(90deg);color:var(--gold);}
+.studio-body{display:none;padding:16px 18px;background:var(--choc2);border-top:1px solid rgba(244,169,0,0.08);}
+.studio-body.open{display:block;}
+
+/* INTEL */
+.intel-item{border-left:2px solid var(--gold);padding:10px 14px;margin-bottom:8px;background:rgba(244,169,0,0.03);border-radius:0 8px 8px 0;}
+.intel-title{font-size:13px;font-weight:600;color:var(--snow);margin-bottom:3px;font-family:var(--font);font-style:italic;}
+.intel-body{font-size:12px;color:var(--beige);line-height:1.5;}
+
+/* PERF BARS */
+.perf-bar{margin-bottom:10px;}
+.perf-row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;}
+.perf-label{color:var(--beige);}
+.perf-val{color:var(--snow);font-family:var(--mono);}
+.perf-track{height:4px;background:rgba(244,169,0,0.1);border-radius:99px;overflow:hidden;}
+.perf-fill{height:100%;border-radius:99px;transition:width 1s ease;}
+
+/* LOG */
+.log-item{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(244,169,0,0.06);font-size:11px;}
+.log-dot{width:5px;height:5px;border-radius:50%;margin-top:3px;flex-shrink:0;}
+.log-time{font-family:var(--mono);font-size:10px;color:var(--choc4);min-width:38px;}
+.log-text{color:var(--beige);}
+
+/* STATUS */
+.status-msg{font-family:var(--mono);font-size:11px;color:var(--choc4);padding:5px 0;min-height:20px;}
+
+/* CHAR METER */
+.char-bar{height:3px;background:rgba(244,169,0,0.1);border-radius:99px;overflow:hidden;margin-top:3px;}
+.char-fill{height:100%;border-radius:99px;}
+
+/* THREAD */
+.thread-line{width:2px;height:12px;background:rgba(244,169,0,0.15);margin:3px auto 3px 14px;}
+
+/* IMAGE */
+.img-preview{width:100%;border-radius:10px;border:1px solid rgba(244,169,0,0.15);margin-top:10px;}
+
+/* GA4 INTELLIGENCE */
+.ga4-banner{display:flex;align-items:center;justify-content:space-between;background:rgba(244,169,0,0.06);border:1px dashed rgba(244,169,0,0.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#8a7060;}
+.ga4-banner.connected{border-style:solid;border-color:rgba(244,169,0,0.3);color:#c4a882;}
+.ga4-banner strong{color:#f4a900;}
+.ga4-refresh{background:none;border:1px solid rgba(244,169,0,0.3);color:#f4a900;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:var(--mono);}
+.period-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.period-tab{padding:5px 14px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid rgba(244,169,0,0.2);color:#8a7060;font-family:var(--mono);}
+.period-tab.active{background:#f4a900;color:#1a0a00;font-weight:700;border-color:#f4a900;}
+.intel-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.intel-metric{background:var(--choc);border:1px solid rgba(244,169,0,0.12);border-radius:10px;padding:16px;text-align:center;}
+.intel-metric-val{font-size:26px;font-weight:700;color:#f4a900;font-family:var(--mono);}
+.intel-metric-lbl{font-size:10px;color:#8a7060;margin-top:4px;text-transform:uppercase;letter-spacing:1px;}
+.intel-metric-trend{font-size:11px;margin-top:5px;color:#4caf50;}
+.intel-metric-trend.bad{color:#ef5350;}
+.intel-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.source-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(244,169,0,0.07);}
+.source-row:last-child{border-bottom:none;}
+.source-bar-wrap{width:70px;height:5px;background:rgba(244,169,0,0.1);border-radius:3px;overflow:hidden;margin:0 8px;}
+.source-bar{height:100%;background:#f4a900;border-radius:3px;}
+.source-pct{color:#f4a900;font-size:11px;font-family:var(--mono);width:30px;text-align:right;}
+.page-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(244,169,0,0.07);font-size:12px;}
+.page-row:last-child{border-bottom:none;}
+.page-url{color:#c4a882;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;}
+.page-views{color:#f4a900;font-family:var(--mono);}
+.intel-strategy-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#f4a900;font-family:var(--mono);margin-bottom:14px;}
+.strategy-card{background:var(--choc);border:1px solid rgba(244,169,0,0.12);border-radius:12px;padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;}
+.strategy-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.strategy-card.revenue::before{background:linear-gradient(90deg,#f4a900,#ff9800);}
+.strategy-card.subscription::before{background:linear-gradient(90deg,#4caf50,#8bc34a);}
+.strategy-card.product::before{background:linear-gradient(90deg,#42a5f5,#7c4dff);}
+.strategy-card.marketing::before{background:linear-gradient(90deg,#ef5350,#ff4081);}
+.strategy-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.strategy-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.si-revenue{background:rgba(244,169,0,0.12);}
+.si-subscription{background:rgba(76,175,80,0.12);}
+.si-product{background:rgba(66,165,245,0.12);}
+.si-marketing{background:rgba(239,83,80,0.12);}
+.strategy-title{font-weight:600;font-size:13px;color:#f5e6c8;line-height:1.4;}
+.strategy-finding{color:#c4a882;font-size:12px;line-height:1.6;margin-bottom:10px;}
+.strategy-action{padding:8px 12px;background:rgba(244,169,0,0.06);border-left:3px solid #f4a900;border-radius:0 6px 6px 0;font-size:12px;color:#f4a900;margin-bottom:10px;}
+.strategy-btn{display:inline-block;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;border:1px solid rgba(244,169,0,0.3);color:#f4a900;background:none;font-family:var(--mono);}
+.intel-skeleton{background:rgba(244,169,0,0.05);border-radius:8px;height:20px;margin-bottom:8px;animation:shimmer 1.5s infinite;}
+@keyframes shimmer{0%,100%{opacity:0.4;}50%{opacity:0.8;}}
+
+/* VIDEO CREATOR */
+.nav-item.video-nav { position: relative; }
+.nav-item.video-nav::after { content: 'NEW'; position: absolute; top: -4px; right: -4px; background: var(--terra); color: white; font-size: 6px; font-family: var(--mono); padding: 1px 4px; border-radius: 3px; }
+.v-step { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.v-step-num { width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: var(--choc2); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.platform-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-top: 6px; }
+.plat-btn { background: var(--choc2); border: 1px solid rgba(244,169,0,0.1); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.plat-btn:hover { border-color: rgba(244,169,0,0.3); }
+.plat-btn.active { background: rgba(244,169,0,0.08); border-color: var(--gold); }
+.plat-icon { font-size: 18px; margin-bottom: 3px; }
+.plat-name { font-size: 9px; font-weight: 600; color: var(--beige); }
+.plat-size { font-size: 8px; color: var(--choc4); font-family: var(--mono); }
+.style-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.style-pill { background: var(--choc2); border: 1px solid rgba(244,169,0,0.1); color: var(--beige); font-size: 10px; padding: 5px 12px; border-radius: 99px; cursor: pointer; transition: all 0.15s; }
+.style-pill:hover { border-color: rgba(244,169,0,0.3); }
+.style-pill.active { background: rgba(244,169,0,0.1); border-color: var(--gold); color: var(--gold); }
+.enh-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.enh-btn { display: flex; align-items: center; gap: 5px; background: var(--choc2); border: 1px solid rgba(244,169,0,0.1); color: var(--beige); font-size: 10px; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+.enh-btn:hover, .enh-btn.active { border-color: rgba(244,169,0,0.3); color: var(--gold); }
+.gen-video-btn { width: 100%; padding: 14px; border-radius: 10px; background: linear-gradient(135deg, var(--gold), var(--terra)); border: none; color: var(--choc2); font-family: var(--body); font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; transition: opacity 0.15s; }
+.gen-video-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.gen-video-sub { text-align: center; font-size: 10px; color: var(--choc4); font-family: var(--mono); margin-top: 6px; }
+.vid-lib-title { font-size: 11px; font-weight: 600; color: var(--beige); margin-bottom: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
+.vid-card { background: var(--choc2); border: 1px solid rgba(244,169,0,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 10px; transition: border-color 0.15s; }
+.vid-card:hover { border-color: rgba(244,169,0,0.2); }
+.vid-thumb { height: 90px; background: linear-gradient(135deg,#1a1208,#2e2010); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+.vid-play { width: 32px; height: 32px; border-radius: 50%; background: rgba(244,169,0,0.9); display: flex; align-items: center; justify-content: center; color: var(--choc2); font-size: 12px; transition: transform 0.15s; }
+.vid-thumb:hover .vid-play { transform: scale(1.1); }
+.vid-dur { position: absolute; bottom: 5px; right: 8px; background: rgba(0,0,0,0.7); color: white; font-size: 8px; font-family: var(--mono); padding: 2px 5px; border-radius: 3px; }
+.vid-plat-tag { position: absolute; top: 5px; left: 8px; font-size: 8px; font-family: var(--mono); padding: 2px 6px; border-radius: 3px; background: rgba(0,0,0,0.6); color: var(--gold); }
+.vid-info { padding: 10px 12px; }
+.vid-name { font-size: 11px; font-weight: 600; color: var(--snow); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vid-time { font-size: 9px; color: var(--choc4); font-family: var(--mono); margin-bottom: 8px; }
+.vid-actions { display: flex; gap: 4px; }
+.btn-xs { font-size: 9px; padding: 4px 8px; border-radius: 5px; border: none; cursor: pointer; font-family: var(--body); font-weight: 600; transition: all 0.1s; }
+.bx-gold { background: var(--gold); color: var(--choc2); }
+.bx-ghost { background: transparent; border: 1px solid rgba(244,169,0,0.2); color: var(--beige); }
+.bx-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.overlay-input { margin-top: 8px; display: none; }
+
+/* SCHEDULE */
+.sch-item{display:flex;align-items:center;gap:16px;padding:11px 0;border-bottom:1px solid rgba(244,169,0,0.08);}
+.sch-time{font-family:var(--mono);font-size:11px;color:var(--gold);min-width:80px;}
+.sch-day{font-size:12px;color:var(--beige);min-width:90px;}
+.sch-content{flex:1;font-size:13px;color:var(--snow);}
+.sch-badge{font-size:10px;padding:3px 9px;border-radius:99px;font-family:var(--mono);}
+.sch-next{background:rgba(244,169,0,0.12);color:var(--gold);}
+.sch-pending{background:rgba(107,92,84,0.2);color:var(--choc4);}
+
+/* DECORATIVE RULE */
+.rule{height:1px;background:linear-gradient(90deg,transparent,rgba(244,169,0,0.3),transparent);margin:20px 0;}
+
+@media(max-width:768px){
+  .sidebar{width:48px;}
+  .main{margin-left:48px;}
+  .stat-strip{grid-template-columns:repeat(3,1fr);}
+  .two-col,.fr,.fr3{grid-template-columns:1fr;}
+  .content{padding:14px;}
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="logo-mark">P</div>
+  <div class="nav-items">
+    <div class="nav-item active" onclick="showScreen('home',this)"><span class="nav-icon">⌂</span><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="showScreen('autopilot',this)"><span class="nav-icon">⚡</span><span class="nav-label">Autopilot</span></div>
+    <div class="nav-item" onclick="showScreen('studio',this)"><span class="nav-icon">✦</span><span class="nav-label">Studio</span></div>
+    <div class="nav-item" onclick="showScreen('intelligence',this)"><span class="nav-icon">◎</span><span class="nav-label">Intelligence</span></div>
+    <div class="nav-item video-nav" onclick="showScreen('video',this)" title="Videos"><span class="nav-icon">🎬</span><span class="nav-label">Videos</span></div>
+  </div>
+  <div class="auto-wrap">
+    <div class="auto-btn on" onclick="toggleAuto()" id="auto-btn">
+      <div class="toggle-track on" id="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="auto-label" id="auto-label">Auto: ON</span>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="page-title" id="page-title">Home</div>
+      <div class="mode-pill mp-auto" id="mode-pill"><div class="pulse" style="background:var(--gold);"></div>Autopilot ON</div>
+    </div>
+    <div class="topbar-right">
+      <span class="chip chip-off" id="cc-claude">Claude…</span>
+      <span class="chip chip-off" id="cc-openai">DALL·E…</span>
+      <span class="chip chip-off" id="cc-fb">FB…</span>
+      <span class="chip chip-off" id="cc-ig">IG…</span>
+      <span class="chip chip-off" id="cc-li">LI…</span>
+      <span class="chip chip-off" id="cc-replicate">Replicate…</span>
+      <span class="chip chip-off" id="cc-ga4">GA4…</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="screen active" id="screen-home">
+      <div class="stat-strip">
+        <div class="stat"><div class="stat-n" id="m-posts" style="color:var(--gold)">0</div><div class="stat-l">Posts</div></div>
+        <div class="stat"><div class="stat-n" id="m-published" style="color:#7cb87c">0</div><div class="stat-l">Published</div></div>
+        <div class="stat"><div class="stat-n" id="m-ads" style="color:var(--terra)">0</div><div class="stat-l">Ads</div></div>
+        <div class="stat"><div class="stat-n" id="m-blog" style="color:var(--beige)">0</div><div class="stat-l">Articles</div></div>
+        <div class="stat"><div class="stat-n" id="m-linkedin" style="color:#5ba8d8">0</div><div class="stat-l">LinkedIn</div></div>
+        <div class="stat"><div class="stat-n" id="m-intel" style="color:var(--terra)">0</div><div class="stat-l">Intel</div></div>
+      </div>
+
+      <div class="auto-banner">
+        <div style="display:flex;align-items:center;">
+          <span class="ab-icon">⚡</span>
+          <div>
+            <div class="ab-title" id="banner-title">Autopilot is running</div>
+            <div class="ab-sub" id="banner-sub">Posting Mon · Wed · Fri at 9:00 AM UTC with AI-generated images</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('autopilot',document.querySelectorAll('.nav-item')[1])">View schedule →</button>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="card-title">Quick publish</div>
+            <div><label>Content angle</label>
+              <select id="quick-angle">
+                <option>Never lose another attachment you receive</option>
+                <option>Signed that contract? InboxArk saved the PDF</option>
+                <option>Stop digging for that one invoice</option>
+                <option>Every attachment organized by sender</option>
+                <option>Find any attachment in seconds</option>
+                <option>Auto-extract invoices, contracts & PDFs</option>
+              </select>
+            </div>
+            <div><label>Platform</label>
+              <select id="quick-plat">
+                <option value="fb+li">Facebook + LinkedIn</option>
+                <option value="facebook">Facebook only</option>
+                <option value="linkedin">LinkedIn only</option>
+                <option value="all">All platforms</option>
+              </select>
+            </div>
+            <div class="fr">
+              <button class="btn btn-gold btn-full" onclick="quickPost()">⚡ Post now</button>
+              <button class="btn btn-terra btn-full" onclick="quickImagePost()">🎨 Post with image</button>
+            </div>
+            <div class="status-msg" id="quick-status"></div>
+            <div id="quick-img"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">Recent activity</div>
+            <div id="home-log"><div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">Loading…</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent posts</div>
+            <div id="home-posts"><div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">No posts yet.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTOPILOT -->
+    <div class="screen" id="screen-autopilot">
+      <div class="auto-banner" id="ap-banner">
+        <div style="display:flex;align-items:center;">
+          <span class="ab-icon" id="ap-icon">⚡</span>
+          <div>
+            <div class="ab-title" id="ap-title">Autopilot active</div>
+            <div class="ab-sub" id="ap-sub">Generating and posting content automatically across all connected platforms</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="toggleAuto()">Toggle autopilot</button>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="card-title">Posting schedule</div>
+            <div class="sch-item"><span class="sch-time">9:00 AM UTC</span><span class="sch-day">Monday</span><div class="sch-content">Auto-generate + DALL·E image → FB + LI</div><span class="sch-badge sch-next">Next</span></div>
+            <div class="sch-item"><span class="sch-time">9:00 AM UTC</span><span class="sch-day">Wednesday</span><div class="sch-content">Auto-generate + DALL·E image → FB + LI</div><span class="sch-badge sch-pending">Pending</span></div>
+            <div class="sch-item"><span class="sch-time">9:00 AM UTC</span><span class="sch-day">Friday</span><div class="sch-content">Auto-generate + DALL·E image → FB + LI</div><span class="sch-badge sch-pending">Pending</span></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Performance tracker</div>
+            <div class="perf-bar"><div class="perf-row"><span class="perf-label">Facebook posts</span><span class="perf-val" id="perf-fb">0</span></div><div class="perf-track"><div class="perf-fill" id="pf-fb" style="width:0%;background:var(--fb, #1877f2)"></div></div></div>
+            <div class="perf-bar"><div class="perf-row"><span class="perf-label">LinkedIn posts</span><span class="perf-val" id="perf-li">0</span></div><div class="perf-track"><div class="perf-fill" id="pf-li" style="width:0%;background:#0a66c2"></div></div></div>
+            <div class="perf-bar"><div class="perf-row"><span class="perf-label">Images generated</span><span class="perf-val" id="perf-img">0</span></div><div class="perf-track"><div class="perf-fill" id="pf-img" style="width:0%;background:var(--gold)"></div></div></div>
+            <div class="rule"></div>
+            <div><label>Paste performance data to improve strategy</label>
+              <textarea id="perf-data" rows="3" placeholder="e.g. Last week: FB post 1400 reach, 62 likes. 18 new signups. Voice-to-email angle performed best…"></textarea>
+            </div>
+            <button class="btn btn-gold btn-full" onclick="analysePerf()">⚡ Analyse + update strategy</button>
+            <div class="status-msg" id="perf-status"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">Autopilot log</div>
+            <div id="ap-log"><div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">Loading…</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Current strategy</div>
+            <div id="strategy">
+              <div class="intel-item"><div class="intel-title">Top angle</div><div class="intel-body">Never lose another attachment — InboxArk saves everything</div></div>
+              <div class="intel-item"><div class="intel-title">Best tone</div><div class="intel-body">Bold & direct</div></div>
+              <div class="intel-item"><div class="intel-title">Best platforms</div><div class="intel-body">Facebook + LinkedIn</div></div>
+              <div class="intel-item"><div class="intel-title">Target audience</div><div class="intel-body">Busy professionals & founders</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDIO -->
+    <div class="screen" id="screen-studio">
+      <div style="margin-bottom:20px;">
+        <div style="font-family:var(--font);font-size:26px;font-weight:600;font-style:italic;color:var(--gold);margin-bottom:4px;">Studio</div>
+        <div style="font-size:13px;color:var(--beige);">Create anything manually. Pick your platform, pick your format, publish instantly.</div>
+      </div>
+
+      <!-- SOCIAL POSTS -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('posts')">
+          <span class="sh-icon">✦</span><div class="sh-title">Social posts — FB · LI · X · IG</div><span class="sh-arrow" id="arr-posts">▶</span>
+        </div>
+        <div class="studio-body" id="sc-posts">
+          <div class="fr3">
+            <div><label>Platform</label><select id="p-plat"><option>FB + LinkedIn</option><option>Facebook only</option><option>LinkedIn only</option><option>Instagram only</option><option>X only</option><option>All platforms</option></select></div>
+            <div><label>Angle</label><select id="p-angle"><option>Never lose attachments</option><option>Auto-save invoices & PDFs</option><option>Organized by sender & year</option><option>Search all attachments</option><option>Bulk download by date</option><option>Gmail + Outlook in one place</option><option>200 MB free — no setup</option><option>Real-time attachment extraction</option><option>Custom…</option></select></div>
+            <div><label>Tone</label><select id="p-tone"><option>Bold & direct</option><option>Witty & punchy</option><option>Friendly</option><option>Professional</option><option>Educational</option></select></div>
+          </div>
+          <div id="p-cw" style="display:none;"><label>Custom angle</label><input type="text" id="p-custom" placeholder="What to say…"/></div>
+          <div class="fr">
+            <button class="btn btn-gold btn-full" onclick="genPost()">⚡ Generate + schedule</button>
+            <button class="btn btn-terra btn-full" onclick="genPostPublish()">🚀 Generate + publish now</button>
+          </div>
+          <div class="status-msg" id="p-st"></div>
+          <div id="post-out"></div>
+        </div>
+      </div>
+
+      <!-- THREADS -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('threads')">
+          <span class="sh-icon">🧵</span><div class="sh-title">X Threads</div><span class="sh-arrow" id="arr-threads">▶</span>
+        </div>
+        <div class="studio-body" id="sc-threads">
+          <div class="fr">
+            <div><label>Topic</label><select id="th-t"><option>How InboxArk saves attachments automatically</option><option>Stop losing important email attachments</option><option>5 reasons you need an attachment manager</option><option>Gmail attachment extraction made easy</option><option>The hidden cost of lost email attachments</option><option>Custom…</option></select></div>
+            <div><label>Length</label><select id="th-l"><option value="5">5 tweets</option><option value="7" selected>7 tweets</option><option value="10">10 tweets</option></select></div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="genThread()">🧵 Build thread</button>
+          <div class="status-msg" id="th-st"></div>
+          <div id="thread-out"></div>
+        </div>
+      </div>
+
+      <!-- MEDIA -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('media')">
+          <span class="sh-icon">🎨</span><div class="sh-title">Images & Video scripts</div><span class="sh-arrow" id="arr-media">▶</span>
+        </div>
+        <div class="studio-body" id="sc-media">
+          <div class="fr">
+            <div><label>Topic</label><input type="text" id="med-topic" placeholder="e.g. Voice to email feature…"/></div>
+            <div><label>Style</label><select id="med-style"><option>Modern & minimal</option><option>Bold & vibrant</option><option>Warm & professional</option><option>Clean white tech</option></select></div>
+          </div>
+          <div class="fr">
+            <button class="btn btn-gold btn-full" onclick="genRealImage()">🎨 Generate image (DALL·E)</button>
+            <button class="btn btn-terra btn-full" onclick="genImagePost()">🎨 Generate + post to FB & LI</button>
+          </div>
+          <div class="status-msg" id="med-st"></div>
+          <div id="med-out"></div>
+        </div>
+      </div>
+
+      <!-- ADS -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('ads')">
+          <span class="sh-icon">◈</span><div class="sh-title">Ad campaigns & copy</div><span class="sh-arrow" id="arr-ads">▶</span>
+        </div>
+        <div class="studio-body" id="sc-ads">
+          <div class="fr3">
+            <div><label>Platform</label><select id="ad-p"><option>Facebook + Instagram</option><option>LinkedIn</option><option>X</option><option>All</option></select></div>
+            <div><label>Objective</label><select id="ad-o"><option>App installs</option><option>Signups</option><option>Awareness</option><option>Leads</option><option>Retargeting</option></select></div>
+            <div><label>Budget</label><select id="ad-b"><option>$0 organic</option><option>$50–100</option><option>$100–300</option><option>$500+</option></select></div>
+          </div>
+          <div><label>Hook</label><input type="text" id="ad-h" placeholder="e.g. Never lose another attachment again."/></div>
+          <button class="btn btn-gold btn-full" onclick="genAd()">◈ Generate campaign</button>
+          <div class="status-msg" id="ad-st"></div>
+          <div id="ad-out"></div>
+        </div>
+      </div>
+
+      <!-- BLOG -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('blog')">
+          <span class="sh-icon">📝</span><div class="sh-title">Blog articles</div><span class="sh-arrow" id="arr-blog">▶</span>
+        </div>
+        <div class="studio-body" id="sc-blog">
+          <div class="fr">
+            <div><label>Topic</label><input type="text" id="bl-t" placeholder="e.g. How AI is replacing email clients in 2026…"/></div>
+            <div><label>Keyword</label><input type="text" id="bl-k" placeholder="e.g. AI email assistant…"/></div>
+          </div>
+          <div class="fr">
+            <div><label>Type</label><select id="bl-type"><option>SEO article</option><option>How-to guide</option><option>Feature spotlight</option><option>vs Competitor</option></select></div>
+            <div><label>Length</label><select id="bl-len"><option>Short 500w</option><option selected>Standard 900w</option><option>Long 1500w+</option></select></div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="genBlog()">📝 Generate article</button>
+          <div class="status-msg" id="bl-st"></div>
+          <div id="blog-out"></div>
+        </div>
+      </div>
+
+      <!-- EMAIL -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('email')">
+          <span class="sh-icon">📧</span><div class="sh-title">Email marketing & PR outreach</div><span class="sh-arrow" id="arr-email">▶</span>
+        </div>
+        <div class="studio-body" id="sc-email">
+          <div class="fr">
+            <div><label>Email type</label><select id="em-t"><option>Welcome — new signup</option><option>Feature announcement</option><option>Re-engagement</option><option>Trial to paid</option><option>Cold B2B outreach</option><option>PR — journalist/blogger</option><option>Investor outreach</option></select></div>
+            <div><label>Audience</label><select id="em-a"><option>Free trial users</option><option>Paid subscribers</option><option>Inactive users</option><option>B2B prospects</option><option>Press/journalists</option><option>Investors</option></select></div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="genEmail()">📧 Generate email</button>
+          <div class="status-msg" id="em-st"></div>
+          <div id="email-out"></div>
+        </div>
+      </div>
+
+      <!-- YOUTUBE -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('youtube')">
+          <span class="sh-icon">▶</span><div class="sh-title">YouTube scripts & SEO</div><span class="sh-arrow" id="arr-youtube">▶</span>
+        </div>
+        <div class="studio-body" id="sc-youtube">
+          <div class="fr">
+            <div><label>Topic</label><select id="yt-t"><option>InboxArk demo — attachment extraction</option><option>How to organize email attachments</option><option>Find any attachment in seconds</option><option>Day in life with InboxArk</option><option>InboxArk vs manual email search</option></select></div>
+            <div><label>Format</label><select id="yt-f"><option>YouTube Short 60sec</option><option>Standard 5–8min</option><option>Deep dive 10–15min</option></select></div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="genYouTube()">▶ Generate script</button>
+          <div class="status-msg" id="yt-st"></div>
+          <div id="yt-out"></div>
+        </div>
+      </div>
+
+      <!-- GOOGLE -->
+      <div class="studio-sec">
+        <div class="studio-head" onclick="toggleS('google')">
+          <span class="sh-icon">🔍</span><div class="sh-title">Google ads & SEO strategy</div><span class="sh-arrow" id="arr-google">▶</span>
+        </div>
+        <div class="studio-body" id="sc-google">
+          <div class="fr">
+            <div><label>Target keyword</label><input type="text" id="gg-k" placeholder="e.g. AI email assistant…"/></div>
+            <div><label>Goal</label><select id="gg-g"><option>App signups</option><option>Awareness</option><option>Leads</option></select></div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="genGoogleAds()">🔍 Generate Search Ads</button>
+          <div class="status-msg" id="gg-st"></div>
+          <div id="gg-out"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTELLIGENCE -->
+    <div class="screen" id="screen-intelligence">
+      <div style="margin-bottom:20px;">
+        <div style="font-family:var(--font);font-size:26px;font-weight:600;font-style:italic;color:var(--gold);margin-bottom:4px;">Intelligence</div>
+        <div style="font-size:13px;color:var(--beige);">Real GA4 data from inboxark.com + AI-generated business strategy.</div>
+      </div>
+
+      <!-- GA4 connection banner -->
+      <div class="ga4-banner" id="ga4-banner">
+        <span>Connect Google Analytics to unlock data-driven strategy. <a href="https://console.cloud.google.com" target="_blank" style="color:#f4a900;">Setup Guide ↗</a></span>
+      </div>
+
+      <!-- Period selector -->
+      <div class="period-tabs" id="period-tabs" style="display:none;">
+        <div class="period-tab" data-period="7d" onclick="setPeriod(this)">7 days</div>
+        <div class="period-tab active" data-period="30d" onclick="setPeriod(this)">30 days</div>
+        <div class="period-tab" data-period="90d" onclick="setPeriod(this)">90 days</div>
+      </div>
+
+      <!-- Metrics grid -->
+      <div class="intel-metrics" id="intel-metrics" style="display:none;">
+        <div class="intel-metric"><div class="intel-metric-val" id="im-sessions">—</div><div class="intel-metric-lbl">Visitors</div></div>
+        <div class="intel-metric"><div class="intel-metric-val" id="im-new">—</div><div class="intel-metric-lbl">New Users</div></div>
+        <div class="intel-metric"><div class="intel-metric-val" id="im-bounce">—</div><div class="intel-metric-lbl">Bounce Rate</div><div class="intel-metric-trend bad" id="im-bounce-note"></div></div>
+        <div class="intel-metric"><div class="intel-metric-val" id="im-session">—</div><div class="intel-metric-lbl">Avg Session</div></div>
+      </div>
+
+      <!-- Sources + pages -->
+      <div class="intel-two" id="intel-two" style="display:none;">
+        <div class="card">
+          <div class="card-title">Traffic Sources</div>
+          <div id="intel-sources"><div class="intel-skeleton"></div><div class="intel-skeleton"></div><div class="intel-skeleton"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top Pages</div>
+          <div id="intel-pages"><div class="intel-skeleton"></div><div class="intel-skeleton"></div><div class="intel-skeleton"></div></div>
+        </div>
+      </div>
+
+      <!-- AI strategy -->
+      <div id="intel-strategy-wrap" style="display:none;">
+        <div class="intel-strategy-label">🧠 AI Strategy — Based On Your Real Data</div>
+        <div id="intel-strategy"></div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="intel-loading" style="display:none;padding:40px 0;text-align:center;color:#8a7060;font-size:13px;">
+        Loading analytics data and generating strategy…
+      </div>
+
+      <!-- Competitive + features (kept below GA4 section) -->
+      <div class="two-col" style="margin-top:24px;">
+        <div>
+          <div class="card">
+            <div class="card-title">Competitive intelligence</div>
+            <div><label>Analysis type</label>
+              <select id="intel-t">
+                <option>Full competitive landscape</option>
+                <option>vs email attachment search</option>
+                <option>vs manual inbox sorting</option>
+                <option>vs cloud storage services</option>
+                <option>vs Google Gemini in Gmail</option>
+                <option>vs Apple Mail</option>
+                <option>Market gap analysis</option>
+                <option>Global expansion opportunities</option>
+              </select>
+            </div>
+            <div><label>Market</label><select id="intel-m"><option>Worldwide</option><option>North America</option><option>Europe</option><option>South Asia</option><option>Southeast Asia</option><option>Middle East</option></select></div>
+            <button class="btn btn-gold btn-full" onclick="genIntel()">◎ Run intelligence report</button>
+            <div class="status-msg" id="intel-st"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Feature recommendations</div>
+            <div><label>User feedback</label><textarea id="feat-fb" rows="3" placeholder="What are users asking for? What complaints are you seeing?…"></textarea></div>
+            <div><label>Focus</label><select id="feat-f"><option>What to build next</option><option>Quick wins</option><option>Competitive moat</option><option>Global expansion</option></select></div>
+            <button class="btn btn-gold btn-full" onclick="genFeatures()">💡 Get recommendations</button>
+            <div class="status-msg" id="feat-st"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">App Store optimisation</div>
+            <div><label>Platform</label><select id="aso-p"><option>iOS App Store</option><option>Google Play</option><option>Both</option></select></div>
+            <button class="btn btn-gold btn-full" onclick="genASO()">💡 Optimise App Store listing</button>
+            <div class="status-msg" id="aso-st"></div>
+          </div>
+        </div>
+        <div id="intel-out"><div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">Run an analysis to see insights here.</div></div>
+      </div>
+    </div>
+
+    <!-- VIDEO CREATOR -->
+    <div class="screen" id="screen-video">
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="v-step"><div class="v-step-num">1</div> Describe Your Video</div>
+            <textarea id="vid-prompt" rows="4" placeholder="e.g. A sleek product demo showing InboxArk dashboard, auto-extracting attachments from Gmail, organized view, dark theme…"></textarea>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+              <span class="btn btn-ghost btn-sm" onclick="setVidPrompt('A product demo showcasing the InboxArk dashboard, clean modern look, attachment overview')">💡 Product demo</span>
+              <span class="btn btn-ghost btn-sm" onclick="setVidPrompt('A brand story video for InboxArk showing how it saves email attachments automatically')">💡 Brand story</span>
+              <span class="btn btn-ghost btn-sm" onclick="setVidPrompt('An app walkthrough showing InboxArk attachment extraction step by step')">💡 App walkthrough</span>
+              <span class="btn btn-ghost btn-sm" onclick="setVidPrompt('A launch announcement video for InboxArk email attachment manager')">💡 Launch</span>
+              <span class="btn btn-ghost btn-sm" onclick="setVidPrompt('A how-it-works explainer for InboxArk showing attachment extraction in 3 steps')">💡 How it works</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="v-step"><div class="v-step-num">2</div> Platform &amp; Format</div>
+            <div class="platform-grid">
+              <div class="plat-btn active" data-platform="tiktok" onclick="selectPlatform(this)"><div class="plat-icon">📱</div><div class="plat-name">TikTok</div><div class="plat-size">9:16</div></div>
+              <div class="plat-btn" data-platform="reels" onclick="selectPlatform(this)"><div class="plat-icon">📸</div><div class="plat-name">Reels</div><div class="plat-size">9:16</div></div>
+              <div class="plat-btn" data-platform="shorts" onclick="selectPlatform(this)"><div class="plat-icon">▶️</div><div class="plat-name">Shorts</div><div class="plat-size">9:16</div></div>
+              <div class="plat-btn" data-platform="twitter" onclick="selectPlatform(this)"><div class="plat-icon">𝕏</div><div class="plat-name">Twitter</div><div class="plat-size">16:9</div></div>
+              <div class="plat-btn" data-platform="linkedin" onclick="selectPlatform(this)"><div class="plat-icon">💼</div><div class="plat-name">LinkedIn</div><div class="plat-size">1:1</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="v-step"><div class="v-step-num">3</div> Video Style</div>
+            <div class="style-pills">
+              <div class="style-pill active" data-style="cinematic" onclick="selectStyle(this)">🎬 Cinematic</div>
+              <div class="style-pill" data-style="bold" onclick="selectStyle(this)">⚡ Bold &amp; Fast</div>
+              <div class="style-pill" data-style="lifestyle" onclick="selectStyle(this)">🌿 Soft Lifestyle</div>
+              <div class="style-pill" data-style="corporate" onclick="selectStyle(this)">🏢 Corporate</div>
+              <div class="style-pill" data-style="minimal" onclick="selectStyle(this)">✨ Minimal</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="v-step"><div class="v-step-num">4</div> Enhancements</div>
+            <div class="enh-tools">
+              <div class="enh-btn" id="enh-dur" onclick="toggleDur()">✂️ Duration: <span id="dur-val">7s</span></div>
+              <div class="enh-btn" id="enh-cap" onclick="toggleEnh('cap')">💬 Captions</div>
+              <div class="enh-btn" id="enh-music" onclick="toggleEnh('music')">🎵 Music</div>
+              <div class="enh-btn" id="enh-text" onclick="toggleEnh('text')">🔤 Text Overlay</div>
+            </div>
+            <div class="overlay-input" id="overlay-input-wrap">
+              <input type="text" id="enh-overlay-text" placeholder="Text to show on screen e.g. Try free at inboxark.com" style="margin-top:8px;"/>
+            </div>
+          </div>
+          <button class="gen-video-btn" id="gen-vid-btn" onclick="generateVideo()">🎬 Generate Video</button>
+          <div class="gen-video-sub">~2 minutes · 1080p HD · saved to your library</div>
+          <div class="status-msg" id="vid-status"></div>
+        </div>
+        <div>
+          <div class="vid-lib-title">Your Videos</div>
+          <div id="vid-library"><div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">No videos yet — generate your first one.</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const APIC='/api/claude';
+const PROD=`InboxArk (inboxark.com): Real-time email attachment extraction tool. Connects to Gmail and Outlook via OAuth, automatically extracts every attachment (invoices, contracts, PDFs, photos), organizes by year and sender, searchable dashboard, bulk download by date or file type. Free tier at 200 MB, paid plans from $6/mo. Web app.`;
+const SYS=`You are the marketing AI for InboxArk. Product: ${PROD}. Be specific, punchy, human. Never generic.`;
+let autoOn=true,C={posts:0,published:0,ads:0,blog:0,linkedin:0,intel:0},logs=[],posts=[];
+const vidState = { platform: 'tiktok', style: 'cinematic', dur: 7, captions: false, music: false, text: false };
+const vidPollers = {};
+
+// TOGGLE AUTO
+function toggleAuto(){
+  autoOn=!autoOn;
+  document.getElementById('toggle-track').className='toggle-track'+(autoOn?' on':'');
+  document.getElementById('auto-label').textContent='Auto: '+(autoOn?'ON':'OFF');
+  document.getElementById('auto-btn').className='auto-btn'+(autoOn?' on':'');
+  document.getElementById('mode-pill').className='mode-pill '+(autoOn?'mp-auto':'mp-manual');
+  document.getElementById('mode-pill').innerHTML='<div class="pulse" style="background:'+(autoOn?'var(--gold)':'var(--terra)')+'"></div>Autopilot '+(autoOn?'ON':'OFF');
+  document.getElementById('banner-title').textContent=autoOn?'Autopilot is running':'Autopilot is paused';
+  document.getElementById('banner-sub').textContent=autoOn?'Posting Mon · Wed · Fri at 9:00 AM UTC with AI-generated images':'Nothing will post automatically. Use Studio to create manually.';
+  document.getElementById('ap-title').textContent=autoOn?'Autopilot active':'Autopilot paused';
+  document.getElementById('ap-sub').textContent=autoOn?'Generating and posting automatically':'Use Studio to create and publish manually';
+  document.getElementById('ap-icon').textContent=autoOn?'⚡':'⏸';
+}
+
+// SCREEN
+function showScreen(n,el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  el.classList.add('active');
+  const titles={home:'Home',autopilot:'Autopilot',studio:'Studio',intelligence:'Intelligence',video:'Video Creator'};
+  document.getElementById('page-title').textContent=titles[n]||n;
+  if(n==='intelligence') loadAnalytics(currentPeriod||'30d');
+}
+
+// STUDIO ACCORDION
+function toggleS(id){
+  const b=document.getElementById('sc-'+id),a=document.getElementById('arr-'+id);
+  const open=b.classList.contains('open');
+  b.classList.toggle('open',!open);
+  a.classList.toggle('open',!open);
+}
+
+// UTILS
+document.getElementById('p-angle').addEventListener('change',function(){document.getElementById('p-cw').style.display=this.value==='Custom…'?'block':'none';});
+function ss(id,m){const e=document.getElementById(id);if(e)e.textContent=m;}
+function upd(){Object.keys(C).forEach(k=>{const e=document.getElementById('m-'+k);if(e)e.textContent=C[k];});}
+function addLog(t,c){c=c||'var(--gold)';const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});logs.unshift({t,c,time});renderLogs();}
+function renderLogs(){
+  const html=logs.length?logs.slice(0,20).map(l=>`<div class="log-item"><div class="log-dot" style="background:${l.c}"></div><span class="log-time">${l.time}</span><span class="log-text">${l.t}</span></div>`).join(''):'<div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">No activity yet.</div>';
+  const a=document.getElementById('home-log');if(a)a.innerHTML=html;
+  const b=document.getElementById('ap-log');if(b)b.innerHTML=html;
+}
+function copy(t){navigator.clipboard.writeText(t).then(()=>addLog('Copied!','var(--gold)')).catch(()=>{});}
+function platBadges(p){
+  const m={'FB + LinkedIn':[['b-fb','FB'],['b-li','LI']],'Facebook only':[['b-fb','FB']],'LinkedIn only':[['b-li','LI']],'Instagram only':[['b-beige','IG']],'X only':[['b-beige','X']],'All platforms':[['b-fb','FB'],['b-li','LI'],['b-beige','X']]};
+  return(m[p]||[['b-gray',p]]).map(([c,l])=>`<span class="badge ${c}">${l}</span>`).join('');
+}
+function platKey(p){const m={'FB + LinkedIn':'fb+li','Facebook only':'facebook','LinkedIn only':'linkedin','Instagram only':'instagram','X only':'x','All platforms':'all'};return m[p]||'fb+li';}
+function charColor(n){return n>260?'var(--terra)':n>220?'var(--gold)':'#7cb87c';}
+
+// CLAUDE
+async function ai(prompt,sid){
+  const el=sid?document.getElementById(sid):null;
+  if(el)el.textContent='⟳ Writing…';
+  try{
+    const r=await fetch(APIC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,system:SYS})});
+    const d=await r.json();if(el)el.textContent='';
+    return d.text||'';
+  }catch(e){if(el)el.textContent='✗ Error.';return null;}
+}
+
+// QUICK POST
+async function quickPost(){
+  const angle=document.getElementById('quick-angle').value;
+  const plat=document.getElementById('quick-plat').value;
+  ss('quick-status','⟳ Generating…');
+  const t=await ai('Write a bold social media post for InboxArk about: "'+angle+'". Under 200 words. 5 hashtags. Sound human.',null);
+  if(!t){ss('quick-status','✗ Error');return;}
+  ss('quick-status','⟳ Publishing…');
+  try{
+    const r=await fetch('/api/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:plat,text:t,angle})});
+    const d=await r.json();
+    ss('quick-status','✓ Published — FB:'+d.facebook+' LI:'+d.linkedin);
+    C.posts++;C.published++;upd();
+    posts.unshift({text:t,angle,plat,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+    renderPosts();addLog('Posted: "'+angle.substring(0,40)+'…"');
+  }catch(e){ss('quick-status','✗ Backend error');}
+}
+
+async function quickImagePost(){
+  const angle=document.getElementById('quick-angle').value;
+  ss('quick-status','⟳ Generating image + posting… (~20s)');
+  try{
+    const r=await fetch('/api/post-with-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({angle})});
+    const d=await r.json();
+    if(d.success){
+      ss('quick-status','✓ Image posted — FB:'+d.facebook+' LI:'+d.linkedin);
+      C.posts++;C.published++;upd();
+      if(d.imageUrl)document.getElementById('quick-img').innerHTML=`<img src="${d.imageUrl}" class="img-preview"/>`;
+      addLog('Image post: "'+angle.substring(0,40)+'…"');
+    }else ss('quick-status','✗ '+d.message);
+  }catch(e){ss('quick-status','✗ Backend error');}
+}
+
+function renderPosts(){
+  const el=document.getElementById('home-posts');if(!el)return;
+  el.innerHTML=posts.length?posts.slice(0,4).map(p=>`<div class="post-card">
+    <div class="post-meta">${platBadges(p.plat)}</div>
+    <div class="post-text">${p.text.substring(0,120).replace(/\n/g,' ')}…</div>
+    <div class="post-foot"><span class="post-time">${p.time}</span><button class="btn btn-ghost btn-sm" onclick="copy(\`${p.text.replace(/`/g,"'")}\`)">Copy</button></div>
+  </div>`).join(''):'<div style="font-size:12px;color:var(--choc4);font-family:var(--mono);">No posts yet.</div>';
+}
+
+// STUDIO POSTS
+async function genPost(){
+  const plat=document.getElementById('p-plat').value;
+  const angle=document.getElementById('p-angle').value==='Custom…'?document.getElementById('p-custom').value:document.getElementById('p-angle').value;
+  const tone=document.getElementById('p-tone').value;
+  const t=await ai('Write a '+tone+' post for InboxArk about: "'+angle+'". Platform: '+plat+'. Under 200 words. 5-8 hashtags. Sound human.','p-st');
+  if(!t)return;
+  C.posts++;upd();
+  posts.unshift({text:t,angle,plat,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+  renderPosts();
+  document.getElementById('post-out').innerHTML=`<div class="post-card"><div class="post-meta">${platBadges(plat)}<span class="badge b-gold">${tone}</span><span class="badge b-beige">Scheduled</span></div><div class="post-text">${t.replace(/\n/g,'<br>')}</div><div class="post-foot"><span></span><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+  addLog('Post generated: "'+angle.substring(0,40)+'…"');
+}
+
+async function genPostPublish(){
+  const plat=document.getElementById('p-plat').value;
+  const angle=document.getElementById('p-angle').value==='Custom…'?document.getElementById('p-custom').value:document.getElementById('p-angle').value;
+  const tone=document.getElementById('p-tone').value;
+  ss('p-st','⟳ Generating…');
+  const t=await ai('Write a '+tone+' post for InboxArk about: "'+angle+'". Under 200 words. 5-8 hashtags. Sound human.',null);
+  if(!t){ss('p-st','✗ Error');return;}
+  ss('p-st','⟳ Publishing to '+plat+'…');
+  try{
+    const r=await fetch('/api/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:platKey(plat),text:t,angle})});
+    const d=await r.json();
+    ss('p-st','✓ Published — FB:'+d.facebook+' LI:'+d.linkedin);
+    C.posts++;C.published++;upd();
+    posts.unshift({text:t,angle,plat,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+    renderPosts();
+    document.getElementById('post-out').innerHTML=`<div class="post-card"><div class="post-meta">${platBadges(plat)}<span class="badge b-green">Published</span></div><div class="post-text">${t.replace(/\n/g,'<br>')}</div><div class="post-foot"><span></span><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+    addLog('Published to '+plat+': "'+angle.substring(0,40)+'…"');
+  }catch(e){ss('p-st','✗ Backend error');}
+}
+
+// THREADS
+async function genThread(){
+  const topic=document.getElementById('th-t').value;const len=document.getElementById('th-l').value;
+  const t=await ai('Write a '+len+'-tweet X thread for InboxArk about: "'+topic+'". Tweet 1: killer hook. Middle: substance. Final: CTA to inboxark.com. Each under 280 chars. Format: TWEET 1: [text]\nTWEET 2: [text]\n...','th-st');
+  if(!t)return;
+  const tweets=(t.match(/TWEET \d+:\s*([\s\S]+?)(?=TWEET \d+:|$)/gi)||[]).map(tw=>tw.replace(/^TWEET \d+:\s*/i,'').trim());
+  document.getElementById('thread-out').innerHTML=tweets.map((tw,i)=>{
+    const ln=tw.length;
+    return`<div class="post-card" style="${i===0?'border-color:rgba(244,169,0,0.3);':''}">
+      <div class="post-meta"><span class="badge b-beige">X</span><span class="badge b-gray">${i+1}/${tweets.length}${i===0?' 🔥':i===tweets.length-1?' 🎯':''}</span></div>
+      <div class="post-text">${tw.replace(/\n/g,'<br>')}</div>
+      <div style="font-size:10px;color:${charColor(ln)};font-family:var(--mono);margin-bottom:3px;">${ln}/280</div>
+      <div class="char-bar"><div class="char-fill" style="width:${Math.min(100,(ln/280)*100)}%;background:${charColor(ln)};"></div></div>
+      <div class="post-foot" style="margin-top:8px;"><span></span><button class="btn btn-ghost btn-sm" onclick="copy(\`${tw.replace(/`/g,"'")}\`)">Copy</button></div>
+    </div>${i<tweets.length-1?'<div class="thread-line"></div>':''}`;
+  }).join('');
+  addLog('Thread: "'+topic.substring(0,40)+'…" ('+tweets.length+' tweets)','var(--terra)');
+}
+
+// MEDIA
+async function genRealImage(){
+  const topic=document.getElementById('med-topic').value||'InboxArk AI email assistant';
+  const style=document.getElementById('med-style').value;
+  ss('med-st','⟳ Generating with DALL·E 3… (~15 sec)');
+  const promptText=await ai('Create a DALL·E 3 image prompt for InboxArk about: "'+topic+'". Style: '+style+'. Modern, professional, tech. Return ONLY the prompt, max 100 words.',null);
+  if(!promptText){ss('med-st','✗ Prompt error');return;}
+  try{
+    const r=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:promptText})});
+    const d=await r.json();
+    if(d.success){ss('med-st','✓ Image ready!');document.getElementById('med-out').innerHTML=`<img src="${d.imageUrl}" class="img-preview"/><div style="margin-top:8px;display:flex;gap:8px;"><a href="${d.imageUrl}" target="_blank" class="btn btn-ghost btn-sm">Open full</a><button class="btn btn-ghost btn-sm" onclick="copy('${promptText.replace(/'/g,"\\'")}')">Copy prompt</button></div>`;addLog('Image: "'+topic+'"');}
+    else ss('med-st','✗ '+(d.message||'Failed'));
+  }catch(e){ss('med-st','✗ Backend error');}
+}
+
+async function genImagePost(){
+  const angle=document.getElementById('med-topic').value||'Never lose another attachment — InboxArk saves everything automatically';
+  ss('med-st','⟳ Generating + posting… (~20 sec)');
+  try{
+    const r=await fetch('/api/post-with-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({angle})});
+    const d=await r.json();
+    if(d.success){ss('med-st','✓ Posted — FB:'+d.facebook+' LI:'+d.linkedin);if(d.imageUrl)document.getElementById('med-out').innerHTML=`<img src="${d.imageUrl}" class="img-preview"/>`;C.published++;upd();addLog('Image posted: FB+LI');}
+    else ss('med-st','✗ '+d.message);
+  }catch(e){ss('med-st','✗ Backend error');}
+}
+
+// ADS
+async function genAd(){
+  const p=document.getElementById('ad-p').value,o=document.getElementById('ad-o').value,b=document.getElementById('ad-b').value,h=document.getElementById('ad-h').value;
+  const t=await ai('Complete ad campaign for InboxArk on '+p+'. Objective: '+o+'. Budget: '+b+'.'+( h?' Hook: '+h:'')+'\nHEADLINE: / PRIMARY TEXT: / CTA: / IMAGE DESCRIPTION: / TARGETING: / PRO TIP:','ad-st');
+  if(!t)return;C.ads++;upd();
+  document.getElementById('ad-out').innerHTML=`<div class="post-card"><div class="post-meta"><span class="badge b-terra">AD</span><span class="badge b-gray">${o}</span></div><div style="font-size:13px;color:var(--beige);line-height:1.7;">${t.replace(/(HEADLINE:|PRIMARY TEXT:|CTA:|IMAGE DESCRIPTION:|TARGETING:|PRO TIP:)/gi,'<strong style="color:var(--gold);display:block;margin:8px 0 2px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+  addLog('Ad: '+o+' on '+p,'var(--terra)');
+}
+
+// BLOG
+async function genBlog(){
+  const topic=document.getElementById('bl-t').value||'How AI is replacing email clients in 2026';
+  const kw=document.getElementById('bl-k').value;const type=document.getElementById('bl-type').value;const len=document.getElementById('bl-len').value;
+  const t=await ai('Complete '+type+' blog for InboxArk (inboxark.com/blog). Topic: "'+topic+'".'+( kw?' Keyword: '+kw+'.':'')+' Length: '+len+'. ## headings. CTA at end. End with META: [150-160 char meta].','bl-st');
+  if(!t)return;C.blog++;upd();
+  const lines=t.split('\n');let title=topic;for(const l of lines){if(l.startsWith('# ')){title=l.replace('# ','').trim();break;}}
+  const meta=(t.match(/META:\s*(.+)/)||[])[1]||'';const words=t.split(/\s+/).length;
+  const body=t.replace(/^# .+\n?/m,'').replace(/META:.*$/m,'').replace(/## (.+)/g,'<h3 style="font-family:var(--font);font-size:15px;font-weight:600;font-style:italic;color:var(--snow);margin:12px 0 6px;">$1</h3>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n\n/g,'</p><p style="margin-bottom:10px;">').trim();
+  document.getElementById('blog-out').innerHTML=`<div class="post-card"><div class="post-meta"><span class="badge b-beige">${type}</span><span class="badge b-gray">${words}w</span></div><div style="font-family:var(--font);font-size:19px;font-weight:600;font-style:italic;color:var(--gold);margin-bottom:10px;">${title}</div><div style="font-size:13px;color:var(--beige);line-height:1.7;"><p style="margin-bottom:10px;">${body}</p></div>${meta?`<div style="background:var(--choc2);border-radius:7px;padding:10px;margin-top:10px;"><div style="font-family:var(--mono);font-size:10px;color:var(--choc4);margin-bottom:4px;">SEO META</div><div style="font-size:12px;color:var(--gold);font-style:italic;">"${meta}"</div></div>`:''}<div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${title}\n\n${t.replace(/`/g,"'")}\`)">Copy article</button></div></div>`;
+  addLog('Blog: "'+title.substring(0,40)+'…" ('+words+'w)','var(--beige)');
+}
+
+// EMAIL
+async function genEmail(){
+  const type=document.getElementById('em-t').value;const aud=document.getElementById('em-a').value;
+  const t=await ai('Write a complete '+type+' email for InboxArk. Audience: '+aud+'. Under 200 words. Format: SUBJECT: / PREVIEW: / EMAIL BODY: / CTA:','em-st');
+  if(!t)return;
+  document.getElementById('email-out').innerHTML=`<div class="post-card"><div class="post-meta"><span class="badge b-gold">${type}</span></div><div style="font-size:13px;color:var(--beige);line-height:1.7;">${t.replace(/(SUBJECT:|PREVIEW:|EMAIL BODY:|CTA:)/gi,'<strong style="color:var(--gold);display:block;margin:8px 0 2px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+  addLog('Email: '+type,'var(--terra)');
+}
+
+// YOUTUBE
+async function genYouTube(){
+  const topic=document.getElementById('yt-t').value;const fmt=document.getElementById('yt-f').value;
+  const t=await ai('Complete '+fmt+' YouTube script for InboxArk: "'+topic+'". TITLE: / HOOK (0-3s): / SCRIPT: / CTA: / THUMBNAIL:','yt-st');
+  if(!t)return;
+  document.getElementById('yt-out').innerHTML=`<div class="post-card"><div class="post-meta"><span class="badge b-terra">YouTube</span><span class="badge b-gray">${fmt}</span></div><div style="font-size:13px;color:var(--beige);line-height:1.7;">${t.replace(/(TITLE:|HOOK[^:]*:|SCRIPT:|CTA:|THUMBNAIL:)/gi,'<strong style="color:var(--terra);display:block;margin:8px 0 2px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+  addLog('YouTube script: "'+topic.substring(0,40)+'…"','var(--terra)');
+}
+
+// GOOGLE
+async function genGoogleAds(){
+  const kw=document.getElementById('gg-k').value||'AI email assistant';const goal=document.getElementById('gg-g').value;
+  const t=await ai('Write 3 Google Search Ad variants for InboxArk targeting: "'+kw+'". Goal: '+goal+'. For each: HEADLINE 1: (30 chars) / HEADLINE 2: (30 chars) / DESCRIPTION: (90 chars) / URL PATH: / WHY:','gg-st');
+  if(!t)return;
+  document.getElementById('gg-out').innerHTML=`<div class="post-card"><div class="post-meta"><span class="badge b-gold">Google Ads</span><span class="badge b-gray">${kw}</span></div><div style="font-size:13px;color:var(--beige);line-height:1.7;">${t.replace(/(HEADLINE \d+:|DESCRIPTION:|URL PATH:|WHY:)/gi,'<strong style="color:var(--gold);display:block;margin:8px 0 2px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+  addLog('Google Ads: '+kw);
+}
+
+// PERFORMANCE
+async function analysePerf(){
+  const data=document.getElementById('perf-data').value||'No data yet.';
+  const t=await ai('Analyse InboxArk marketing: '+data+'\nWHAT WORKED: / WHAT FAILED: / TOP 3 CHANGES NOW: / BEST ANGLE NEXT WEEK: / PLATFORM TO PRIORITISE:','perf-status');
+  if(!t)return;
+  document.getElementById('strategy').innerHTML=t.replace(/(WHAT WORKED:|WHAT FAILED:|TOP 3 CHANGES:|BEST ANGLE:|PLATFORM TO PRIORITISE:)/gi,m=>`</div><div class="intel-item"><div class="intel-title">${m.replace(':','')}</div><div class="intel-body">`).replace(/\n/g,'<br>')+'</div>';
+  addLog('Strategy updated from performance data','#7cb87c');
+}
+
+// INTELLIGENCE
+async function genIntel(){
+  const type=document.getElementById('intel-t').value;const market=document.getElementById('intel-m').value;
+  const t=await ai('Competitive intel for InboxArk: '+type+' in '+market+'.\nMARKET OPPORTUNITY: / KEY COMPETITORS: / PINNBOXIO ADVANTAGES: / GAPS TO EXPLOIT: / RECOMMENDED MOVES: / CONTENT ANGLES:','intel-st');
+  if(!t)return;C.intel++;upd();
+  document.getElementById('intel-out').innerHTML=`<div class="card"><div class="card-title">${type} — ${market}</div><div style="font-size:13px;color:var(--beige);line-height:1.8;">${t.replace(/(MARKET OPPORTUNITY:|KEY COMPETITORS:|PINNBOXIO ADVANTAGES:|GAPS TO EXPLOIT:|RECOMMENDED MOVES:|CONTENT ANGLES:)/gi,'<strong style="color:var(--gold);display:block;margin:12px 0 3px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy report</button></div></div>`;
+  addLog('Intel: '+type,'var(--terra)');
+}
+
+async function genFeatures(){
+  const fb=document.getElementById('feat-fb').value||'Users want better notifications';const focus=document.getElementById('feat-f').value;
+  const t=await ai('Feature recs for InboxArk. Feedback: '+fb+'. Focus: '+focus+'.\nPRIORITY TO BUILD: / DONT BUILD: / MOAT FEATURES: / TIME ESTIMATE: / TOP RECOMMENDATION:','feat-st');
+  if(!t)return;
+  document.getElementById('intel-out').innerHTML=`<div class="card"><div class="card-title">Feature Recommendations</div><div style="font-size:13px;color:var(--beige);line-height:1.8;">${t.replace(/(PRIORITY TO BUILD:|DONT BUILD:|MOAT FEATURES:|TIME ESTIMATE:|TOP RECOMMENDATION:)/gi,'<strong style="color:var(--gold);display:block;margin:12px 0 3px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy</button></div></div>`;
+  addLog('Feature analysis: '+focus,'var(--beige)');
+}
+
+async function genASO(){
+  const plat=document.getElementById('aso-p').value;
+  const t=await ai('Optimise '+plat+' listing for InboxArk. APP NAME: (30 chars) / SUBTITLE: (30 chars) / DESCRIPTION: (keyword rich, 400 words) / KEYWORDS: (100 chars) / SCREENSHOT CAPTIONS: (5)','aso-st');
+  if(!t)return;
+  document.getElementById('intel-out').innerHTML=`<div class="card"><div class="card-title">ASO — ${plat}</div><div style="font-size:13px;color:var(--beige);line-height:1.8;">${t.replace(/(APP NAME:|SUBTITLE:|DESCRIPTION:|KEYWORDS:|SCREENSHOT CAPTIONS:)/gi,'<strong style="color:var(--gold);display:block;margin:12px 0 3px;">$1</strong>').replace(/\n/g,'<br>')}</div><div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" onclick="copy(\`${t.replace(/`/g,"'")}\`)">Copy ASO</button></div></div>`;
+  addLog('ASO: '+plat,'var(--beige)');
+}
+
+// STATUS
+async function loadSt(){
+  try{
+    const r=await fetch('/api/status');if(!r.ok)return;
+    const d=await r.json();
+    const chips={claude:'Claude',openai:'DALL·E',fb:'FB',ig:'IG',li:'LI'};
+    const vals={claude:d.claude,openai:d.openai,fb:d.facebook,ig:d.instagram,li:d.linkedin};
+    Object.keys(chips).forEach(k=>{
+      const cc=document.getElementById('cc-'+k);
+      if(cc){cc.textContent=chips[k]+' '+(vals[k]?'✓':'✗');cc.className='chip '+(vals[k]?'chip-on':'chip-off');}
+    });
+    const cr = document.getElementById('cc-replicate');
+    if (cr) {
+      cr.textContent = d.replicate ? 'Replicate ✓' : 'Replicate ✗';
+      cr.className = d.replicate ? 'chip chip-on' : 'chip chip-off';
+    }
+    const cg = document.getElementById('cc-ga4');
+    if (cg) {
+      cg.textContent = d.ga4 ? 'GA4 ✓' : 'GA4 ✗';
+      cg.className = d.ga4 ? 'chip chip-on' : 'chip chip-off';
+    }
+    try{
+      const lr=await fetch('/api/logs');const ld=await lr.json();
+      if(ld.logs){
+        const cols={success:'#7cb87c',error:'var(--terra)',warn:'var(--gold)',info:'var(--beige)'};
+        ld.logs.slice(0,15).forEach(l=>{if(!logs.find(x=>x.t===l.message))logs.push({t:l.message,c:cols[l.type]||'var(--gold)',time:l.time});});
+        renderLogs();
+      }
+    }catch(e){}
+  }catch(e){}
+}
+
+window.addEventListener('DOMContentLoaded',()=>{loadSt();setInterval(loadSt,30000);});
+loadSt();
+
+// ANALYTICS
+let currentPeriod = '30d';
+let analyticsLoaded = false;
+
+function setPeriod(el) {
+  document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentPeriod = el.dataset.period;
+  analyticsLoaded = false;
+  loadAnalytics(currentPeriod);
+}
+
+async function loadAnalytics(period) {
+  const banner = document.getElementById('ga4-banner');
+  const loading = document.getElementById('intel-loading');
+  const metrics = document.getElementById('intel-metrics');
+  const two = document.getElementById('intel-two');
+  const stratWrap = document.getElementById('intel-strategy-wrap');
+  const periodTabs = document.getElementById('period-tabs');
+
+  loading.style.display = 'block';
+  metrics.style.display = 'none';
+  two.style.display = 'none';
+  stratWrap.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/analytics?period=' + period);
+    const data = await res.json();
+    loading.style.display = 'none';
+
+    if (!data.success) {
+      if (data.reason === 'not_configured') {
+        banner.className = 'ga4-banner';
+        banner.innerHTML = 'Connect Google Analytics to unlock data-driven strategy. <a href="https://console.cloud.google.com" target="_blank" style="color:#f4a900;">Setup Guide ↗</a>';
+      } else {
+        banner.className = 'ga4-banner';
+        banner.innerHTML = '<strong>GA4 error:</strong> Could not fetch analytics data. Check server logs.';
+      }
+      return;
+    }
+
+    analyticsLoaded = true;
+    const syncTime = new Date(data.generatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    banner.className = 'ga4-banner connected';
+    banner.innerHTML = '<span><strong>GA4 connected</strong> · inboxark.com · Last synced ' + syncTime + '</span><button class="ga4-refresh" onclick="refreshAnalytics()">⟳ Refresh</button>';
+
+    periodTabs.style.display = 'flex';
+    renderMetrics(data.metrics);
+    renderSources(data.metrics.topSources);
+    renderPages(data.metrics.topPages);
+    metrics.style.display = 'grid';
+    two.style.display = 'grid';
+
+    if (data.strategy) {
+      renderStrategy(data.strategy);
+      stratWrap.style.display = 'block';
+    }
+  } catch (err) {
+    loading.style.display = 'none';
+    banner.innerHTML = 'Failed to load analytics: ' + err.message;
+  }
+}
+
+function renderMetrics(m) {
+  document.getElementById('im-sessions').textContent = m.sessions.toLocaleString();
+  document.getElementById('im-new').textContent = m.newUsers.toLocaleString();
+  document.getElementById('im-bounce').textContent = m.bounceRate + '%';
+  document.getElementById('im-bounce-note').textContent = m.bounceRate > 60 ? 'High — needs attention' : 'Good';
+  document.getElementById('im-bounce-note').className = 'intel-metric-trend' + (m.bounceRate > 60 ? ' bad' : '');
+  const mins = Math.floor(m.avgSessionSec / 60);
+  const secs = String(m.avgSessionSec % 60).padStart(2, '0');
+  document.getElementById('im-session').textContent = mins + 'm ' + secs + 's';
+}
+
+function renderSources(sources) {
+  const el = document.getElementById('intel-sources');
+  if (!sources || !sources.length) { el.innerHTML = '<div style="font-size:12px;color:#8a7060;">No source data</div>'; return; }
+  const maxPct = Math.max(...sources.map(s => s.pct), 1);
+  el.innerHTML = sources.map(s =>
+    '<div class="source-row"><span style="font-size:12px;color:#c4a882;">' + s.name + '</span>' +
+    '<div style="display:flex;align-items:center;">' +
+    '<div class="source-bar-wrap"><div class="source-bar" style="width:' + Math.round((s.pct / maxPct) * 100) + '%"></div></div>' +
+    '<span class="source-pct">' + s.pct + '%</span></div></div>'
+  ).join('');
+}
+
+function renderPages(pages) {
+  const el = document.getElementById('intel-pages');
+  if (!pages || !pages.length) { el.innerHTML = '<div style="font-size:12px;color:#8a7060;">No page data</div>'; return; }
+  el.innerHTML = pages.map(p =>
+    '<div class="page-row"><span class="page-url" title="' + p.path + '">' + p.path + '</span><span class="page-views">' + p.views.toLocaleString() + '</span></div>'
+  ).join('');
+}
+
+const STRATEGY_META = {
+  revenue:      { icon: '💰', cls: 'revenue',      iconCls: 'si-revenue',      btn: 'View Pricing Page', action: () => window.open('https://inboxark.com/pricing', '_blank') },
+  subscription: { icon: '🔔', cls: 'subscription', iconCls: 'si-subscription', btn: 'View Signup Page',  action: () => window.open('https://inboxark.com/signup', '_blank') },
+  product:      { icon: '🛠️', cls: 'product',      iconCls: 'si-product',      btn: 'Open Studio',       action: () => { const el=document.querySelector('[onclick*="\'studio\'"]'); if(el)el.click(); } },
+  marketing:    { icon: '📣', cls: 'marketing',    iconCls: 'si-marketing',    btn: 'Create Video',      action: (a) => { const el=document.querySelector('[onclick*="\'video\'"]'); if(el)el.click(); if(a)setTimeout(()=>setVidPrompt(a),100); } }
+};
+
+function renderStrategy(strategy) {
+  const el = document.getElementById('intel-strategy');
+  el.innerHTML = ['revenue','subscription','product','marketing'].map(key => {
+    const block = strategy[key];
+    if (!block) return '';
+    const meta = STRATEGY_META[key];
+    return '<div class="strategy-card ' + meta.cls + '">' +
+      '<div class="strategy-hdr"><div class="strategy-icon ' + meta.iconCls + '">' + meta.icon + '</div>' +
+      '<div class="strategy-title">' + block.title + '</div></div>' +
+      '<div class="strategy-finding">' + block.finding + '</div>' +
+      '<div class="strategy-action">→ ' + block.action + '</div>' +
+      '<button class="strategy-btn" onclick="strategyAction(\'' + key + '\',this.dataset.action)" data-action="' + (block.action||'').replace(/"/g,'&quot;') + '">' + meta.btn + ' ↗</button>' +
+      '</div>';
+  }).join('');
+}
+
+function strategyAction(key, actionText) {
+  const meta = STRATEGY_META[key];
+  if (meta) meta.action(actionText);
+}
+
+function refreshAnalytics() {
+  analyticsLoaded = false;
+  loadAnalytics(currentPeriod);
+}
+
+// VIDEO CREATOR
+function setVidPrompt(t) { document.getElementById('vid-prompt').value = t; }
+
+function selectPlatform(el) {
+  document.querySelectorAll('.plat-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  vidState.platform = el.dataset.platform;
+}
+
+function selectStyle(el) {
+  document.querySelectorAll('.style-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  vidState.style = el.dataset.style;
+}
+
+function toggleDur() {
+  vidState.dur = vidState.dur === 7 ? 10 : 7;
+  document.getElementById('dur-val').textContent = vidState.dur + 's';
+  document.getElementById('enh-dur').classList.toggle('active', vidState.dur === 10);
+}
+
+function toggleEnh(key) {
+  vidState[key] = !vidState[key];
+  document.getElementById('enh-' + key).classList.toggle('active', vidState[key]);
+  if (key === 'text') {
+    document.getElementById('overlay-input-wrap').style.display = vidState.text ? 'block' : 'none';
+  }
+}
+
+async function generateVideo() {
+  const prompt = document.getElementById('vid-prompt').value.trim();
+  if (!prompt) { ss('vid-status', '✗ Please describe your video first.'); return; }
+  const btn = document.getElementById('gen-vid-btn');
+  btn.disabled = true;
+  ss('vid-status', '⟳ Sending to Replicate (~2 min)…');
+  const body = {
+    prompt,
+    platform: vidState.platform,
+    style: vidState.style,
+    duration: vidState.dur,
+    captions: vidState.captions,
+    music: vidState.music,
+    textOverlay: vidState.text ? (document.getElementById('enh-overlay-text').value.trim() || null) : null
+  };
+  try {
+    const r = await fetch('/api/generate-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!d.success) { ss('vid-status', '✗ ' + (d.error || 'Failed')); btn.disabled = false; return; }
+    ss('vid-status', '✓ Queued — generating in background…');
+    btn.disabled = false;
+    addVidCard(d.predictionId, prompt, vidState.platform, vidState.dur);
+    startVidPoller(d.predictionId);
+    addLog('Video queued: "' + prompt.substring(0, 40) + '…"');
+  } catch (e) { ss('vid-status', '✗ Network error'); btn.disabled = false; }
+}
+
+function addVidCard(id, prompt, platform, dur) {
+  const lib = document.getElementById('vid-library');
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (document.querySelector('[data-vid-id="' + id + '"]')) return;
+  const card = document.createElement('div');
+  card.className = 'vid-card';
+  card.dataset.vidId = id;
+  card.innerHTML = `
+    <div class="vid-thumb">
+      <div style="text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⏳</div><div style="font-size:8px;font-family:var(--mono);color:var(--choc4);">Generating…</div></div>
+      <div class="vid-plat-tag">${platform}</div>
+    </div>
+    <div class="vid-info">
+      <div class="vid-name">${prompt.substring(0, 48)}…</div>
+      <div class="perf-track" style="margin:4px 0;"><div class="perf-fill" style="width:20%;background:var(--gold);" id="vprog-${id}"></div></div>
+      <div class="vid-time" id="vtime-${id}">${time} — generating</div>
+    </div>`;
+  if (lib.querySelector('div[style]')) lib.innerHTML = '';
+  lib.prepend(card);
+}
+
+function startVidPoller(id) {
+  let attempts = 0;
+  const maxAttempts = 120;
+  vidPollers[id] = setInterval(async () => {
+    attempts++;
+    try {
+      const r = await fetch('/api/video-status/' + id);
+      const d = await r.json();
+      const prog = document.getElementById('vprog-' + id);
+      if (prog) prog.style.width = Math.min(20 + attempts * 2, 90) + '%';
+      if (d.status === 'succeeded' && d.videoUrl) {
+        clearInterval(vidPollers[id]);
+        updateVidCard(id, d.videoUrl);
+        addLog('Video ready! "' + id.substring(0, 16) + '…"');
+      } else if (d.status === 'failed' || attempts >= maxAttempts) {
+        clearInterval(vidPollers[id]);
+        const card = document.querySelector('[data-vid-id="' + id + '"]');
+        if (card) {
+          const thumb = card.querySelector('.vid-thumb');
+          if (thumb) thumb.innerHTML = '<div style="text-align:center;font-size:11px;color:var(--terra);">✗ Generation failed</div>';
+        }
+        const timeEl = document.getElementById('vtime-' + id);
+        if (timeEl) timeEl.textContent = 'Failed';
+      }
+    } catch (e) { /* network blip, keep polling */ }
+  }, 5000);
+}
+
+function updateVidCard(id, videoUrl) {
+  const card = document.querySelector('[data-vid-id="' + id + '"]');
+  if (!card) return;
+  const thumb = card.querySelector('.vid-thumb');
+  const info = card.querySelector('.vid-info');
+  const platTag = card.querySelector('.vid-plat-tag');
+  const platText = platTag ? platTag.textContent : '';
+  const vidName = info ? info.querySelector('.vid-name').textContent : 'Video';
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (thumb) {
+    thumb.innerHTML = `<div class="vid-play">▶</div><div class="vid-dur">0:07</div><div class="vid-plat-tag">${platText}</div>`;
+    thumb.onclick = () => window.open(videoUrl, '_blank');
+  }
+  if (info) {
+    info.innerHTML = `
+      <div class="vid-name">${vidName}</div>
+      <div class="vid-time">Ready · ${time}</div>
+      <div class="vid-actions">
+        <button class="btn-xs bx-gold" onclick="copyVidUrl('${videoUrl}')">📋 Copy URL</button>
+        <a href="${videoUrl}" download class="btn-xs bx-ghost" style="text-decoration:none;">↓ Save</a>
+      </div>`;
+  }
+}
+
+function copyVidUrl(url) {
+  navigator.clipboard.writeText(url).then(() => addLog('Video URL copied!')).catch(() => {});
+}
+</script>
+</body>
+</html>
