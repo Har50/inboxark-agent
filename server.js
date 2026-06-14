@@ -24,6 +24,7 @@ const CONFIG = {
   GA4_PRIVATE_KEY:    process.env.GA4_PRIVATE_KEY || '',
   META_PAGE_ID:           process.env.META_PAGE_ID || '',
   META_ACCESS_TOKEN:      process.env.META_ACCESS_TOKEN || '',
+  META_AD_ACCOUNT_ID:     process.env.META_AD_ACCOUNT_ID || '',
   IG_USER_ID:             process.env.IG_USER_ID || '',
   LINKEDIN_CLIENT_ID:     process.env.LINKEDIN_INBOXARK_CLIENT_ID || process.env.LINKEDIN_CLIENT_ID || '',
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_INBOXARK_CLIENT_SECRET || process.env.LINKEDIN_CLIENT_SECRET || '',
@@ -369,6 +370,33 @@ async function postImageToLinkedIn(imageUrl, caption) {
   } catch (err) { addLog(`LinkedIn image failed: ${err.message}`, 'error'); return false; }
 }
 
+// ─── FACEBOOK ADS ───────────────────────────────────────────────────────────
+
+async function createFacebookAd(adsetConfig) {
+  if (!CONFIG.META_AD_ACCOUNT_ID || !CONFIG.META_ACCESS_TOKEN) {
+    addLog('Facebook Ads not configured', 'warn');
+    return false;
+  }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${CONFIG.META_AD_ACCOUNT_ID}/adsets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: adsetConfig.name,
+        daily_budget: adsetConfig.dailyBudget,
+        billing_event: 'IMPRESSIONS',
+        optimization_goal: 'REACH',
+        targeting: adsetConfig.targeting,
+        access_token: CONFIG.META_ACCESS_TOKEN
+      })
+    });
+    const data = await res.json();
+    if (data.id) { addLog(`Ad created: ${data.id}`, 'success'); return data.id; }
+    addLog(`Ad creation error: ${JSON.stringify(data.error)}`, 'error');
+    return false;
+  } catch (err) { addLog(`Ad creation failed: ${err.message}`, 'error'); return false; }
+}
+
 const ANGLES = [
   'Never lose another attachment — InboxArk saves everything automatically',
   'Signed that contract? InboxArk already saved the PDF',
@@ -493,6 +521,15 @@ app.post('/api/publish', async (req, res) => {
 
   addLog(`Published → FB:${fb} IG:${ig} LI:${li}`, 'success');
   res.json({ success: true, facebook: fb, instagram: ig, linkedin: li, text: postText });
+});
+
+app.post('/api/create-ad', async (req, res) => {
+  const { name, dailyBudget, targeting } = req.body;
+  if (!name || !dailyBudget || !targeting) {
+    return res.status(400).json({ error: 'name, dailyBudget, and targeting required' });
+  }
+  const adId = await createFacebookAd({ name, dailyBudget, targeting });
+  res.json({ success: !!adId, adId });
 });
 
 app.post('/api/generate-image', async (req, res) => {
