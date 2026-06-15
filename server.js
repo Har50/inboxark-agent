@@ -62,18 +62,20 @@ async function callClaude(prompt, system) {
   } catch (err) { addLog(`Claude error: ${err.message}`, 'error'); return null; }
 }
 
+// Returns a PNG image as a Buffer (gpt-image-1 returns base64, not a URL).
 async function generateImage(prompt) {
   if (!CONFIG.OPENAI_API_KEY) return null;
   try {
-    addLog('Generating image with DALL-E 3...', 'info');
+    addLog('Generating image with gpt-image-1...', 'info');
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CONFIG.OPENAI_API_KEY}` },
-      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' })
+      body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'high' })
     });
     const data = await res.json();
-    if (data.data?.[0]?.url) { addLog('Image generated OK', 'success'); return data.data[0].url; }
-    addLog(`DALLE error: ${JSON.stringify(data.error)}`, 'error');
+    const b64 = data.data?.[0]?.b64_json;
+    if (b64) { addLog('Image generated OK', 'success'); return Buffer.from(b64, 'base64'); }
+    addLog(`Image error: ${JSON.stringify(data.error)}`, 'error');
     return null;
   } catch (err) { addLog(`Image failed: ${err.message}`, 'error'); return null; }
 }
@@ -289,12 +291,17 @@ async function postToFacebook(text) {
   } catch (err) { addLog(`Facebook failed: ${err.message}`, 'error'); return false; }
 }
 
-async function postImageToFacebook(imageUrl, caption) {
+async function postImageToFacebook(imageBuffer, caption) {
   if (!CONFIG.META_PAGE_ID || !CONFIG.META_ACCESS_TOKEN) return false;
   try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/${CONFIG.META_PAGE_ID}/photos`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: imageUrl, caption, access_token: CONFIG.META_ACCESS_TOKEN })
+    // Upload raw bytes via multipart 'source' (gpt-image-1 gives no hosted URL).
+    // Uses Node's built-in fetch/FormData/Blob (Node 18+), not node-fetch.
+    const form = new FormData();
+    form.append('source', new Blob([imageBuffer], { type: 'image/png' }), 'image.png');
+    form.append('caption', caption || '');
+    form.append('access_token', CONFIG.META_ACCESS_TOKEN);
+    const res = await globalThis.fetch(`https://graph.facebook.com/v19.0/${CONFIG.META_PAGE_ID}/photos`, {
+      method: 'POST', body: form
     });
     const data = await res.json();
     if (data.id) { addLog(`Facebook image published: ${data.id}`, 'success'); return true; }
@@ -347,7 +354,7 @@ async function postToLinkedIn(text) {
   } catch (err) { addLog(`LinkedIn failed: ${err.message}`, 'error'); return false; }
 }
 
-async function postImageToLinkedIn(imageUrl, caption) {
+async function postImageToLinkedIn(imageBuffer, caption) {
   if (!CONFIG.LINKEDIN_ACCESS_TOKEN || !CONFIG.LINKEDIN_ORG_ID) return false;
   try {
     const reg = await (await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
@@ -358,7 +365,7 @@ async function postImageToLinkedIn(imageUrl, caption) {
     const uploadUrl = reg.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
     const asset = reg.value?.asset;
     if (!uploadUrl || !asset) return false;
-    const imgBuf = await (await fetch(imageUrl)).buffer();
+    const imgBuf = imageBuffer;
     await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: imgBuf });
     const post = await (await fetch('https://api.linkedin.com/v2/ugcPosts', {
       method: 'POST',
@@ -421,21 +428,21 @@ async function runAutonomousPost() {
   posts.unshift(post);
   if (posts.length > 100) posts.pop();
 
-  let imageUrl = null;
+  let imageBuffer = null;
   if (CONFIG.OPENAI_API_KEY) {
-    const imgPrompt = await callClaude(`Create a DALL-E 3 image prompt for InboxArk about: "${angle}". Modern, professional, tech. Return ONLY the prompt, max 100 words.`);
-    if (imgPrompt) imageUrl = await generateImage(imgPrompt);
+    const imgPrompt = await callClaude(`Create an image generation prompt for InboxArk about: "${angle}". Modern, professional, tech. Return ONLY the prompt, max 100 words.`);
+    if (imgPrompt) imageBuffer = await generateImage(imgPrompt);
   }
 
   let fb, ig, li;
-  if (imageUrl) {
-    [fb, ig, li] = await Promise.all([postImageToFacebook(imageUrl, text), postToInstagram(text), postImageToLinkedIn(imageUrl, text)]);
+  if (imageBuffer) {
+    [fb, ig, li] = await Promise.all([postImageToFacebook(imageBuffer, text), postToInstagram(text), postImageToLinkedIn(imageBuffer, text)]);
   } else {
     [fb, ig, li] = await Promise.all([postToFacebook(text), postToInstagram(text), postToLinkedIn(text)]);
   }
   post.status = (fb || ig || li) ? 'published' : 'generated_only';
-  post.published = { facebook: fb, instagram: ig, linkedin: li, image: !!imageUrl };
-  addLog(`Cycle complete — FB:${fb} IG:${ig} LI:${li} IMG:${!!imageUrl}`, 'success');
+  post.published = { facebook: fb, instagram: ig, linkedin: li, image: !!imageBuffer };
+  addLog(`Cycle complete — FB:${fb} IG:${ig} LI:${li} IMG:${!!imageBuffer}`, 'success');
 }
 
 // Mon/Wed/Fri 9am UTC
@@ -539,10 +546,11 @@ app.post('/api/generate-image', async (req, res) => {
     const r = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CONFIG.OPENAI_API_KEY}` },
-      body: JSON.stringify({ model: 'dall-e-3', prompt: prompt || 'Modern AI email assistant app', n: 1, size: '1024x1024', quality: 'standard' })
+      body: JSON.stringify({ model: 'gpt-image-1', prompt: prompt || 'Modern AI email assistant app', n: 1, size: '1024x1024', quality: 'high' })
     });
     const data = await r.json();
-    if (data.data?.[0]?.url) { addLog('Image generated for preview', 'success'); res.json({ success: true, imageUrl: data.data[0].url }); }
+    const b64 = data.data?.[0]?.b64_json;
+    if (b64) { addLog('Image generated for preview', 'success'); res.json({ success: true, imageUrl: `data:image/png;base64,${b64}` }); }
     else res.json({ success: false, message: JSON.stringify(data.error || data) });
   } catch (err) { res.json({ success: false, message: err.message }); }
 });
@@ -551,12 +559,12 @@ app.post('/api/post-with-image', async (req, res) => {
   const { angle, caption } = req.body;
   addLog('Image post triggered', 'info');
   try {
-    const imgPrompt = await callClaude(`Create a DALL-E 3 image prompt for InboxArk about: "${angle || 'Email attachment organizer'}". Modern, professional. Return ONLY the prompt, max 100 words.`);
-    const imageUrl = await generateImage(imgPrompt || 'Modern AI email productivity app interface, dark theme, professional');
-    if (!imageUrl) return res.json({ success: false, message: 'Image generation failed' });
+    const imgPrompt = await callClaude(`Create an image generation prompt for InboxArk about: "${angle || 'Email attachment organizer'}". Modern, professional. Return ONLY the prompt, max 100 words.`);
+    const imageBuffer = await generateImage(imgPrompt || 'Modern AI email productivity app interface, dark theme, professional');
+    if (!imageBuffer) return res.json({ success: false, message: 'Image generation failed' });
     const postCaption = caption || `${angle} — Try InboxArk free at inboxark.com`;
-    const [fb, li] = await Promise.all([postImageToFacebook(imageUrl, postCaption), postImageToLinkedIn(imageUrl, postCaption)]);
-    res.json({ success: true, imageUrl, facebook: fb, linkedin: li });
+    const [fb, li] = await Promise.all([postImageToFacebook(imageBuffer, postCaption), postImageToLinkedIn(imageBuffer, postCaption)]);
+    res.json({ success: true, imageUrl: `data:image/png;base64,${imageBuffer.toString('base64')}`, facebook: fb, linkedin: li });
   } catch (err) { res.json({ success: false, message: err.message }); }
 });
 
