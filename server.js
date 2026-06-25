@@ -448,6 +448,25 @@ async function runAutonomousPost() {
 // Mon/Wed/Fri 9am UTC
 cron.schedule('0 9 * * 1,3,5', () => { addLog('Scheduled post triggered', 'info'); runAutonomousPost(); });
 
+// External trigger for cron-job.org (Render free tier sleeps, so cron alone won't work)
+app.get('/api/ping', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
+app.post('/api/cron-trigger', async (req, res) => {
+  const { key } = req.body;
+  if (key !== (process.env.CRON_SECRET || 'inboxark-autopost')) {
+    return res.status(401).json({ error: 'invalid key' });
+  }
+  addLog('External cron trigger received', 'info');
+  await runAutonomousPost();
+  res.json({ success: true, postCount: posts.length });
+});
+
+// ─── KEEPALIVE — keeps Render from sleeping (optional) ──────────────────────
+setInterval(async () => {
+  try { await fetch(`http://localhost:${CONFIG.PORT}/api/ping`); }
+  catch {}
+}, 5 * 60 * 1000);
+
 // ─── LINKEDIN OAUTH ───────────────────────────────────────────────────────────
 app.get('/auth/linkedin/callback', async (req, res) => {
   const { code, error, error_description } = req.query;
@@ -646,9 +665,11 @@ app.get('/debug/env', (req, res) => res.json({
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? 'SET' : 'MISSING',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'SET' : 'MISSING',
   META_ACCESS_TOKEN: process.env.META_ACCESS_TOKEN ? 'SET' : 'MISSING',
+  META_PAGE_ID: process.env.META_PAGE_ID ? 'SET' : 'MISSING',
   LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN ? 'SET' : 'MISSING',
-  LINKEDIN_PINNBOXIO_CLIENT_ID: process.env.LINKEDIN_PINNBOXIO_CLIENT_ID ? `SET (${process.env.LINKEDIN_PINNBOXIO_CLIENT_ID.length} chars)` : 'MISSING',
-  LINKEDIN_PINNBOXIO_CLIENT_SECRET: process.env.LINKEDIN_PINNBOXIO_CLIENT_SECRET ? `SET (${process.env.LINKEDIN_PINNBOXIO_CLIENT_SECRET.length} chars)` : 'MISSING',
+  LINKEDIN_INBOXARK_CLIENT_ID: process.env.LINKEDIN_INBOXARK_CLIENT_ID ? `SET (${process.env.LINKEDIN_INBOXARK_CLIENT_ID.length} chars)` : 'MISSING',
+  LINKEDIN_INBOXARK_CLIENT_SECRET: process.env.LINKEDIN_INBOXARK_CLIENT_SECRET ? `SET (${process.env.LINKEDIN_INBOXARK_CLIENT_SECRET.length} chars)` : 'MISSING',
+  CRON_SECRET: process.env.CRON_SECRET ? 'SET' : 'MISSING (default used)',
 }));
 
 app.listen(CONFIG.PORT, () => {
